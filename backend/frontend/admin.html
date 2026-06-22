@@ -72,7 +72,8 @@
   }
 
   /* ─── LAYOUT ─── */
-  #app { display: flex; min-height: 100vh; }
+  #app { display:none; min-height: 100vh; }
+  #app.authenticated { display:flex; }
 
   /* ─── SIDEBAR ─── */
   aside {
@@ -496,7 +497,7 @@
 <div id="toast"></div>
 
 <script>
-const API = 'https://websiteproject2-production.up.railway.app/api';
+const API = 'http://localhost:8000/api';
 let adminPwd = '';
 let editingId = null;
 let allProducts = [];
@@ -512,6 +513,7 @@ function doLogin() {
     .then(r => { if (r.status === 403) throw new Error(); return r.json(); })
     .then(() => {
       document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app').classList.add('authenticated');
       loadDashboard();
     })
     .catch(() => {
@@ -523,6 +525,7 @@ function doLogin() {
 function doLogout() {
   adminPwd = '';
   document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.remove('authenticated');
   document.getElementById('pwd-input').value = '';
   document.getElementById('login-error').textContent = '';
 }
@@ -878,6 +881,13 @@ function previewImages(val) {
 // ─── HELPERS ─────────────────────────────────────────
 async function apiFetch(path) {
   const r = await fetch(API + path, { headers: { 'x-admin-password': adminPwd } });
+  if (!r.ok) {
+    if (r.status === 403) {
+      doLogout();
+      throw new Error('Unauthorized');
+    }
+    throw new Error(`HTTP ${r.status}`);
+  }
   return r.json();
 }
 
