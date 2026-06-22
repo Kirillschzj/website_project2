@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>PRODUCT</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+
+font-family:Space Grotesk,sans-serif;
+background:white;
+color:black;
+
+}
+
+
+nav{
+
+height:80px;
+
+padding:0 32px;
+
+display:flex;
+align-items:center;
+justify-content:space-between;
+
+border-bottom:1px solid rgba(0,0,0,.08);
+
+}
+
+
+.back{
+
+font-size:11px;
+letter-spacing:.12em;
+text-transform:uppercase;
+cursor:pointer;
+
+}
+
+
+
+.container{
+
+max-width:1500px;
+
+margin:auto;
+
+padding:40px;
+
+display:grid;
+grid-template-columns:1.1fr .9fr;
+gap:80px;
+
+}
+
+
+
+.gallery{
+
+display:grid;
+gap:2px;
+
+}
+
+
+
+.gallery img{
+
+width:100%;
+display:block;
+object-fit:cover;
+
+}
+
+
+
+.info{
+
+display:flex;
+flex-direction:column;
+gap:24px;
+
+position:sticky;
+top:120px;
+
+height:max-content;
+
+}
+
+
+
+.brand{
+
+font-size:12px;
+font-weight:500;
+letter-spacing:.14em;
+text-transform:uppercase;
+
+}
+
+
+.name{
+
+font-size:34px;
+
+font-weight:400;
+
+}
+
+
+
+.price{
+
+font-size:22px;
+
+}
+
+
+
+.description{
+
+line-height:1.8;
+
+font-size:14px;
+
+max-width:550px;
+
+opacity:.8;
+
+}
+
+
+
+.sizes{
+
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+
+}
+
+
+
+.size{
+
+padding:8px 18px;
+
+border:1px solid black;
+
+font-size:11px;
+
+cursor:pointer;
+
+transition:.2s;
+
+}
+
+
+
+.size:hover{
+
+background:black;
+color:white;
+
+}
+
+
+
+.actions{
+
+display:flex;
+gap:12px;
+
+}
+
+
+
+.btn{
+
+
+padding:14px 24px;
+
+border:none;
+
+cursor:pointer;
+
+font-family:inherit;
+
+font-size:11px;
+
+letter-spacing:.12em;
+
+text-transform:uppercase;
+
+}
+
+
+
+.buy{
+
+background:black;
+color:white;
+
+}
+
+
+
+.wishlist{
+
+background:white;
+border:1px solid black;
+
+}
+
+
+
+.meta{
+
+margin-top:40px;
+
+display:flex;
+flex-direction:column;
+gap:12px;
+
+font-size:12px;
+
+opacity:.7;
+
+}
+
+
+@media(max-width:900px){
+
+
+.container{
+
+grid-template-columns:1fr;
+
+padding:20px;
+
+gap:40px;
+
+}
+
+
+.info{
+
+position:relative;
+top:auto;
+
+}
+
+
+.name{
+
+font-size:28px;
+
+}
+
+
+}
+
+
+</style>
+
+</head>
+
+<body>
+
+
+
+<nav>
+
+<div class="back" onclick="history.back()">
+
+← BACK
+
+</div>
+
+</nav>
+
+
+
+
+<div class="container">
+
+
+<div class="gallery" id="gallery">
+
+</div>
+
+
+
+
+<div class="info">
+
+
+<div>
+
+<div class="brand" id="brand"></div>
+
+<h1 class="name" id="name"></h1>
+
+<div class="price" id="price"></div>
+
+</div>
+
+
+
+<div class="description" id="description">
+
+Vintage item in excellent condition.
+
+Authenticity guaranteed.
+
+Worldwide shipping available.
+
+</div>
+
+
+
+<div class="sizes" id="sizes"></div>
+
+
+
+<div class="actions">
+
+<button class="btn buy">
+
+CONTACT TO BUY
+
+</button>
+
+
+<button class="btn wishlist">
+
+WISHLIST+
+
+</button>
+
+</div>
+
+
+
+
+<div class="meta">
+
+<div>ID: <span id="id"></span></div>
+
+<div>Condition: Excellent</div>
+
+<div>Shipping: Worldwide</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+
+<script>
+
+
+const API="http://localhost:8000/api";
+
+
+const id=new URLSearchParams(location.search).get("id");
+
+
+async function loadProduct(){
+
+const p=await fetch(`${API}/products/${id}`)
+.then(r=>r.json());
+
+
+document.getElementById("brand").textContent=p.brand;
+document.getElementById("name").textContent=p.name;
+document.getElementById("price").textContent=p.price;
+document.getElementById("id").textContent=p.id;
+
+
+
+const gallery=document.getElementById("gallery");
+
+
+gallery.innerHTML=p.images.map(img=>`
+
+<img src="${img}">
+
+`).join("");
+
+
+
+const sizes=document.getElementById("sizes");
+
+
+sizes.innerHTML=p.sizes.map(size=>`
+
+<div class="size">
+
+${size}
+
+</div>
+
+`).join("");
+
+
+
+document.querySelector(".buy").onclick=()=>{
+
+window.open(
+
+`https://t.me/your_seller_bot?start=product_${p.id}`,
+
+"_blank"
+
+);
+
+};
+
+
+}
+
+
+loadProduct();
+
+
+
+</script>
+
+
+</body>
+</html>
