@@ -639,6 +639,10 @@ function renderGrid(products) {
   products.forEach(p => {
     const card = document.createElement('div');
     card.className = 'product-card';
+    card.onclick = () => {
+  window.location.href = `product.html?id=${p.id}`;
+};
+    
     const imgs = p.images && p.images.filter(Boolean);
     let mediaHtml = '';
     if (!imgs || !imgs.length) {
