@@ -501,8 +501,37 @@ const API = '/api';
 let adminPwd = '';
 let editingId = null;
 let allProducts = [];
-let allBrands = [];
-let allCategories = [];
+
+let allBrands = [
+  { id: 1, name: "Balenciaga" },
+  { id: 2, name: "Vetements" },
+  { id: 3, name: "Rick Owens" },
+  { id: 4, name: "Chrome Hearts" },
+  { id: 5, name: "Louis Vuitton" },
+  { id: 6, name: "Prada" },
+  { id: 7, name: "Gucci" },
+  { id: 8, name: "Dior" },
+  { id: 9, name: "Nike" },
+  { id: 10, name: "Adidas" },
+  { id: 11, name: "Yeezy" },
+  { id: 12, name: "Off-White" },
+  { id: 13, name: "Stone Island" },
+  { id: 14, name: "Moncler" },
+  { id: 15, name: "Palm Angels" }
+];
+
+let allCategories = [
+  { id: 1, name: "T-Shirts", sizes: ["XS","S","M","L","XL","XXL"] },
+  { id: 2, name: "Hoodies", sizes: ["XS","S","M","L","XL","XXL"] },
+  { id: 3, name: "Sweaters", sizes: ["XS","S","M","L","XL","XXL"] },
+  { id: 4, name: "Jackets", sizes: ["XS","S","M","L","XL","XXL"] },
+  { id: 5, name: "Pants", sizes: ["28","30","32","34","36","38"] },
+  { id: 6, name: "Shorts", sizes: ["XS","S","M","L","XL"] },
+  { id: 7, name: "Sneakers", sizes: ["38","39","40","41","42","43","44","45","46"] },
+  { id: 8, name: "Boots", sizes: ["39","40","41","42","43","44","45"] },
+  { id: 9, name: "Bags", sizes: ["ONE SIZE"] },
+  { id: 10, name: "Accessories", sizes: ["ONE SIZE"] }
+];
 
 // ─── LOGIN ───────────────────────────────────────────
 function doLogin() {
@@ -604,20 +633,28 @@ function filterProductTable(q) {
 
 // ─── FORM SELECTS ────────────────────────────────────
 async function loadFormSelects() {
-  const [brands, cats] = await Promise.all([
-    apiFetch('/brands'),
-    apiFetch('/categories'),
-  ]);
-  allBrands = brands;
-  allCategories = cats;
+
+  try {
+    const [brands, cats] = await Promise.all([
+      apiFetch('/brands'),
+      apiFetch('/categories'),
+    ]);
+
+    if (brands.length) allBrands = brands;
+    if (cats.length) allCategories = cats;
+  } catch(e) {
+    console.log('Using default brands/categories');
+  }
 
   const brandSel = document.getElementById('f-brand');
-  brandSel.innerHTML = '<option value="">— Select brand —</option>' +
-    brands.map(b => `<option value="${b.name}" data-id="${b.id}">${b.name}</option>`).join('');
+  brandSel.innerHTML =
+    '<option value="">— Select brand —</option>' +
+    allBrands.map(b => `<option value="${b.name}" data-id="${b.id}">${b.name}</option>`).join('');
 
   const catSel = document.getElementById('f-category');
-  catSel.innerHTML = '<option value="">— Select category —</option>' +
-    cats.map(c => `<option value="${c.name}" data-id="${c.id}" data-sizes="${c.sizes.join(',')}">${c.name}</option>`).join('');
+  catSel.innerHTML =
+    '<option value="">— Select category —</option>' +
+    allCategories.map(c => `<option value="${c.name}" data-id="${c.id}" data-sizes="${c.sizes.join(',')}">${c.name}</option>`).join('');
 
   renderSizesCheckboxes([]);
 }
