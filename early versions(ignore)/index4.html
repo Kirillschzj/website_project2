@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATALOG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fff;
+    --fg: #000;
+    --overlay-bg: rgba(180,180,180,0.18);
+    --overlay-blur: rgba(200,200,200,0.55);
+    --filters-bg: rgba(110,110,110,0.72);
+    --card-overlay: rgba(100,100,100,0.7);
+    --font: 'Space Grotesk', sans-serif;
+    --nav-h: 80px;
+  }
+
+  body { font-family: var(--font); background: var(--bg); color: var(--fg); overflow-x: hidden; }
+
+  /* ─── PAGES ─── */
+  .page { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity .4s ease; }
+  .page.hidden { opacity: 0; pointer-events: none; }
+
+  /* ─── ENTRY PAGE ─── */
+  #page-entry { flex-direction: column; gap: 14px; }
+  #page-entry .page-bg,
+  #page-login .page-bg {
+    position: absolute; inset: 0;
+    background: #111; /* заменишь на img тег или video */
+    z-index: 0;
+  }
+  #page-entry .page-bg img,
+  #page-login .page-bg img {
+    width: 100%; height: 100%; object-fit: cover; opacity: .7;
+  }
+  #page-entry > *:not(.page-bg),
+  #page-login > *:not(.page-bg) { position: relative; z-index: 1; }
+
+  /* ─── LOGIN PAGE ─── */
+  #page-login { flex-direction: column; gap: 14px; }
+
+  /* ─── UNDERLINE ANIMATION (from center) ─── */
+  .btn-text {
+    position: relative;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: none; border: none; color: var(--fg);
+    padding: 4px 0;
+    z-index: 1;
+  }
+  .btn-text::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%; right: 50%;
+    height: 1px;
+    background: var(--fg);
+    transition: left .25s ease, right .25s ease;
+  }
+  .btn-text:hover::after { left: 0; right: 0; }
+
+  /* ─── CATALOG PAGE ─── */
+  #page-catalog { position: relative; display: block; background: var(--bg); overflow-y: auto; }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    display: flex; align-items: center; gap: 24px;
+    padding: 0 28px;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .nav-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
+    cursor: pointer; background: none; border: none; color: var(--fg);
+    position: relative; padding: 4px 0;
+  }
+  .nav-btn::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: var(--fg);
+    transition: left .25s ease, right .25s ease;
+  }
+  .nav-btn:hover::after { left: 0; right: 0; }
+  .nav-btn svg { width: 14px; height: 14px; }
+
+  /* ─── OVERLAY (blur+darken) ─── */
+  #page-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.28);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 90;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  #page-overlay.active { opacity: 1; pointer-events: all; }
+
+  /* ─── SIDE PANEL (menu & search) ─── */
+  #side-panel {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 320px;
+    background: var(--bg);
+    z-index: 110;
+    padding: 0 28px;
+    transform: translateX(-100%);
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+  }
+  #side-panel.open { transform: translateX(0); }
+
+  .panel-nav {
+    height: var(--nav-h);
+    display: flex; align-items: center; gap: 24px;
+    flex-shrink: 0;
+  }
+
+  /* search mode */
+  #search-input-wrap {
+    display: none;
+    align-items: center; gap: 8px;
+    padding: 16px 0 0;
+    border-bottom: 1px solid var(--fg);
+    margin-bottom: 8px;
+  }
+  #search-input-wrap.visible { display: flex; }
+  #search-input {
+    flex: 1; border: none; outline: none;
+    font-family: var(--font); font-size: 13px; letter-spacing: .08em;
+    text-transform: uppercase; background: transparent;
+    placeholder-color: #999;
+  }
+
+  /* menu mode */
+  #menu-content { display: none; padding-top: 8px; }
+  #menu-content.visible { display: block; }
+
+  .brand-list-label {
+    font-size: 12px; font-weight: 500; letter-spacing: .1em;
+    text-transform: uppercase; margin-bottom: 12px; color: #555;
+  }
+  .brand-item {
+    display: block;
+    font-size: 13px; letter-spacing: .06em;
+    padding: 6px 0 6px 12px;
+    cursor: pointer; position: relative;
+  }
+  .brand-item::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: var(--fg);
+    transition: left .25s, right .25s;
+  }
+  .brand-item:hover::after { left: 12px; right: 0; }
+
+  .wishlist-btn {
+    margin-top: auto; padding-bottom: 32px;
+    font-size: 11px; font-weight: 500; letter-spacing: .14em;
+    text-transform: uppercase; cursor: pointer;
+  }
+
+  /* ─── GRID ─── */
+  #catalog-grid {
+    margin-top: var(--nav-h);
+    padding: 0 28px 120px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+  @media(max-width:900px) { #catalog-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ─── PRODUCT CARD ─── */
+  .product-card {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    /* фиксированная высота — ровно 1/3 viewport минус nav */
+    height: calc((100vh - var(--nav-h)) / 3);
+  }
+
+  .card-img-placeholder {
+    width: 100%; height: 100%;
+    background: #e8e8e8;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* NO PHOTO state */
+  .card-img-placeholder.no-photo {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .card-img-placeholder.no-photo::after {
+    content: 'NO PHOTO';
+    font-size: 9px; letter-spacing: .14em;
+    color: #bbb; text-transform: uppercase;
+  }
+
+  /* одно фото */
+  .card-img-placeholder.single img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+
+  /* коллаж из нескольких фото */
+  .card-img-placeholder.collage {
+    display: grid; gap: 2px;
+  }
+  .card-img-placeholder.collage.count-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .card-img-placeholder.collage.count-3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .card-img-placeholder.collage.count-3 img:first-child {
+    grid-row: 1 / 3;
+  }
+  .card-img-placeholder.collage.count-4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .card-img-placeholder.collage img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    min-height: 0;
+  }
+
+  /* hover overlay */
+  .card-overlay {
+    position: absolute; inset: 0;
+    background: var(--card-overlay);
+    opacity: 0;
+    transition: opacity .35s ease;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 14px;
+    color: #fff;
+  }
+  .product-card:hover .card-overlay { opacity: 1; }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-brand { font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+  .card-price { font-size: 11px; letter-spacing: .06em; }
+  .card-product-name { font-size: 12px; letter-spacing: .04em; margin-top: 4px; opacity: .85; }
+  .card-sizes { font-size: 10px; letter-spacing: .06em; opacity: .8; text-align: center; align-self: center; }
+  .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+
+  .card-contact {
+    font-size: 10px; font-weight: 500; letter-spacing: .1em;
+    text-transform: uppercase; cursor: pointer;
+    position: relative; padding-bottom: 2px;
+  }
+  .card-contact::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: #fff;
+    transition: left .25s, right .25s;
+  }
+  .card-contact:hover::after { left: 0; right: 0; }
+
+  .card-wishlist {
+    font-size: 10px; font-weight: 500; letter-spacing: .1em;
+    text-transform: uppercase; cursor: pointer;
+    position: relative; padding-bottom: 2px;
+  }
+  .card-wishlist::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: #fff;
+    transition: left .25s, right .25s;
+  }
+  .card-wishlist:hover::after { left: 0; right: 0; }
+
+  /* ─── FILTERS BAR ─── */
+  #filters-bar {
+    position: fixed; bottom: 28px;
+    left: 50%; transform: translateX(-50%);
+    background: var(--filters-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex; gap: 0;
+    z-index: 80;
+    min-width: 260px;
+  }
+
+  .filter-btn {
+    flex: 1; padding: 10px 28px;
+    font-family: var(--font); font-size: 10px;
+    font-weight: 500; letter-spacing: .14em;
+    text-transform: uppercase; color: #fff;
+    background: none; border: none; cursor: pointer;
+    position: relative;
+  }
+  .filter-btn::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: #fff;
+    transition: left .25s, right .25s;
+  }
+  .filter-btn:hover::after { left: 8px; right: 8px; }
+
+  /* ─── FILTERS PANEL ─── */
+  #filters-panel {
+    position: fixed; bottom: 80px;
+    left: 50%; transform: translateX(-50%);
+    background: var(--filters-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 20px 28px;
+    color: #fff;
+    z-index: 80;
+    min-width: 300px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    transform: translateX(-50%) translateY(8px);
+  }
+  #filters-panel.open {
+    opacity: 1; pointer-events: all;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .filter-section { margin-bottom: 14px; }
+  .filter-section-title { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
+  .filter-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-tag {
+    font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 4px 10px; border: 1px solid rgba(255,255,255,.5);
+    cursor: pointer; transition: background .2s, border-color .2s;
+    color: #fff;
+  }
+  .filter-tag.active, .filter-tag:hover { background: rgba(255,255,255,.2); border-color: #fff; }
+
+  /* ─── SORT PANEL ─── */
+  #sort-panel {
+    position: fixed; bottom: 80px;
+    left: 50%; transform: translateX(-50%);
+    background: var(--filters-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 20px 28px;
+    color: #fff;
+    z-index: 80;
+    min-width: 220px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    transform: translateX(-50%) translateY(8px);
+  }
+  #sort-panel.open {
+    opacity: 1; pointer-events: all;
+    transform: translateX(-50%) translateY(0);
+  }
+  .sort-option {
+    display: block; font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; padding: 8px 0;
+    cursor: pointer; position: relative;
+    border-bottom: 1px solid rgba(255,255,255,.15);
+  }
+  .sort-option:last-child { border-bottom: none; }
+  .sort-option::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: #fff;
+    transition: left .25s, right .25s;
+  }
+  .sort-option:hover::after { left: 0; right: 0; }
+</style>
+</head>
+<body>
+
+<!-- ─── ENTRY PAGE ─── -->
+<div class="page" id="page-entry">
+  <!-- сюда вставь фото/видео: <div class="page-bg"><img src="твоё_фото.jpg"></div> -->
+  <div class="page-bg"></div>
+  <button class="btn-text" style="color:#fff;--fg:#fff" onclick="showPage('login')">ENTER THE CATALOG</button>
+</div>
+
+<!-- ─── LOGIN PAGE ─── -->
+<div class="page hidden" id="page-login">
+  <!-- сюда вставь фото/видео: <div class="page-bg"><img src="твоё_фото.jpg"></div> -->
+  <div class="page-bg"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;position:relative;z-index:1;">
+    <button class="btn-text" style="color:#fff;--fg:#fff" onclick="loginTelegram()">LOGIN WITH TELEGRAM</button>
+    <button class="btn-text" style="color:#fff;--fg:#fff" onclick="showCatalog()">LOGIN AS A GUEST</button>
+  </div>
+</div>
+
+<!-- ─── CATALOG PAGE ─── -->
+<div class="page hidden" id="page-catalog">
+
+  <!-- NAV -->
+  <nav>
+    <button class="nav-btn" id="btn-menu" onclick="openMenu()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/>
+      </svg>
+      MENU
+    </button>
+    <button class="nav-btn" id="btn-search" onclick="openSearch()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+      </svg>
+      SEARCH
+    </button>
+  </nav>
+
+  <!-- GRID -->
+  <div id="catalog-grid"></div>
+
+  <!-- FILTERS BAR -->
+  <div id="filters-bar">
+    <button class="filter-btn" onclick="toggleFilters()">FILTERS</button>
+    <button class="filter-btn" onclick="toggleSort()">SORT</button>
+  </div>
+
+  <!-- FILTERS PANEL -->
+  <div id="filters-panel">
+    <div class="filter-section">
+      <div class="filter-section-title">Brand</div>
+      <div class="filter-tags" id="filter-brands"></div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-title">Size</div>
+      <div class="filter-tags">
+        <div class="filter-tag" onclick="toggleTag(this)">XS</div>
+        <div class="filter-tag" onclick="toggleTag(this)">S</div>
+        <div class="filter-tag" onclick="toggleTag(this)">M</div>
+        <div class="filter-tag" onclick="toggleTag(this)">L</div>
+        <div class="filter-tag" onclick="toggleTag(this)">XL</div>
+        <div class="filter-tag" onclick="toggleTag(this)">XXL</div>
+        <div class="filter-tag" onclick="toggleTag(this)">ONE SIZE</div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-title">Price</div>
+      <div class="filter-tags">
+        <div class="filter-tag" onclick="toggleTag(this)">Under 5000</div>
+        <div class="filter-tag" onclick="toggleTag(this)">5000–15000</div>
+        <div class="filter-tag" onclick="toggleTag(this)">15000+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SORT PANEL -->
+  <div id="sort-panel">
+    <div class="sort-option" onclick="setSort('new')">Newest first</div>
+    <div class="sort-option" onclick="setSort('price-asc')">Price: low to high</div>
+    <div class="sort-option" onclick="setSort('price-desc')">Price: high to low</div>
+    <div class="sort-option" onclick="setSort('brand')">Brand A–Z</div>
+  </div>
+
+</div>
+
+<!-- ─── OVERLAY ─── -->
+<div id="page-overlay" onclick="closeAll()"></div>
+
+<!-- ─── SIDE PANEL ─── -->
+<div id="side-panel">
+  <div class="panel-nav">
+    <button class="nav-btn" id="panel-close-btn" onclick="closeAll()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+      </svg>
+      <span id="panel-close-label">CLOSE</span>
+    </button>
+    <button class="nav-btn" id="panel-search-toggle" onclick="switchPanelMode()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+      </svg>
+      <span id="panel-search-label">SEARCH</span>
+    </button>
+  </div>
+
+  <!-- search input -->
+  <div id="search-input-wrap">
+    <svg viewBox="0 0 16 16" fill="none" stroke="#000" stroke-width="1.5" width="14" height="14">
+      <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+    </svg>
+    <input id="search-input" type="text" placeholder="TYPE HERE" oninput="doSearch(this.value)">
+  </div>
+
+  <!-- menu content -->
+  <div id="menu-content">
+    <div class="brand-list-label">Brands list</div>
+    <div id="brands-list"></div>
+  </div>
+
+  <div class="wishlist-btn">WISHLIST [ <span id="wishlist-count">0</span> ]</div>
+  <div style="padding-bottom:32px;">
+    <button class="nav-btn" id="menu-auth-btn" style="font-size:10px;letter-spacing:.12em;"></button>
+  </div>
+
+<script>
+// ─── INIT — проверка сессии при загрузке ─────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const session = getSession();
+  if (session) {
+    showCatalog();
+  } else {
+    showPage('entry');
+  }
+});
+
+// ─── STATE ───────────────────────────────────────────
+let panelMode = 'menu'; // 'menu' | 'search'
+let wishlistCount = 0;
+let activeFilters = { brands: [], sizes: [], price: '' };
+let currentSort = 'new';
+
+// ─── CONFIG ───────────────────────────────────────────
+const API = 'http://localhost:8000/api';
+
+let BRANDS = [];
+let PRODUCTS = [];
+let displayedProducts = [];
+
+// ─── PAGES ───────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('page-' + id).classList.remove('hidden');
+}
+
+// вызывается Telegram виджетом после авторизации
+function onTelegramAuth(user) {
+  fetch(`${API}/auth/telegram`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user)
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      localStorage.setItem('session', JSON.stringify({ type: 'telegram', ...data }));
+      showCatalog();
+    }
+  });
+}
+
+function loginTelegram() {
+  // fallback если виджет не подключён
+  showCatalog();
+}
+
+async function showCatalog() {
+  // сохраняем сессию если ещё не сохранена
+  const session = getSession();
+  if (!session) {
+    localStorage.setItem('session', JSON.stringify({ type: 'guest' }));
+  }
+  updateMenuAuth();
+  showPage('catalog');
+  const [products, brands] = await Promise.all([
+    fetch(`${API}/products`).then(r => r.json()).catch(() => []),
+    fetch(`${API}/brands`).then(r => r.json()).catch(() => []),
+  ]);
+  PRODUCTS = products.map(p => ({ ...p, inWishlist: false }));
+  BRANDS = brands;
+  displayedProducts = [...PRODUCTS];
+  renderGrid(displayedProducts);
+  renderBrandFilters();
+  renderBrandsList();
+}
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('session')); } catch { return null; }
+}
+
+function updateMenuAuth() {
+  const session = getSession();
+  const authBtn = document.getElementById('menu-auth-btn');
+  if (!authBtn) return;
+  if (!session || session.type === 'guest') {
+    authBtn.textContent = 'LOGIN WITH TELEGRAM';
+    authBtn.onclick = () => { closeAll(); showPage('login'); };
+  } else {
+    authBtn.textContent = 'SIGN OUT';
+    authBtn.onclick = () => { localStorage.removeItem('session'); location.reload(); };
+  }
+}
+
+function signOut() {
+  localStorage.removeItem('session');
+  location.reload();
+}
+
+// ─── GRID RENDER ─────────────────────────────────────
+function renderGrid(products) {
+  const grid = document.getElementById('catalog-grid');
+  grid.innerHTML = '';
+  products.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    const imgs = p.images && p.images.filter(Boolean);
+    let mediaHtml = '';
+    if (!imgs || !imgs.length) {
+      mediaHtml = `<div class="card-img-placeholder no-photo"></div>`;
+    } else if (imgs.length === 1) {
+      mediaHtml = `<div class="card-img-placeholder single"><img src="${imgs[0]}" alt="${p.name}" loading="lazy"></div>`;
+    } else {
+      const count = Math.min(imgs.length, 4);
+      const imgTags = imgs.slice(0, count).map(u => `<img src="${u}" alt="${p.name}" loading="lazy">`).join('');
+      mediaHtml = `<div class="card-img-placeholder collage count-${count}">${imgTags}</div>`;
+    }    card.innerHTML = `
+      ${mediaHtml}
+      <div class="card-overlay">
+        <div>
+          <div class="card-top">
+            <div>
+              <div class="card-brand">${p.brand}</div>
+              <div class="card-product-name">${p.name}</div>
+            </div>
+            <div class="card-price">${p.price}</div>
+          </div>
+        </div>
+        <div class="card-sizes">Available sizes: ${p.sizes.join(' · ')}</div>
+        <div class="card-bottom">
+          <div class="card-contact" onclick="contactSeller(${p.id})">contact to buy</div>
+          <div class="card-wishlist" onclick="toggleWishlist(event, ${p.id})" id="wish-${p.id}">${p.inWishlist ? 'wishlisted ♥' : 'wishlist+'}</div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── MENU / SEARCH PANEL ─────────────────────────────
+function openMenu() {
+  panelMode = 'menu';
+  document.getElementById('side-panel').classList.add('open');
+  document.getElementById('page-overlay').classList.add('active');
+  document.getElementById('menu-content').classList.add('visible');
+  document.getElementById('search-input-wrap').classList.remove('visible');
+  document.getElementById('panel-search-label').textContent = 'SEARCH';
+}
+
+function openSearch() {
+  panelMode = 'search';
+  document.getElementById('side-panel').classList.add('open');
+  document.getElementById('page-overlay').classList.add('active');
+  document.getElementById('menu-content').classList.remove('visible');
+  document.getElementById('search-input-wrap').classList.add('visible');
+  document.getElementById('panel-search-label').textContent = 'SEARCH';
+  setTimeout(() => document.getElementById('search-input').focus(), 350);
+}
+
+function switchPanelMode() {
+  if (panelMode === 'menu') { openSearch(); panelMode = 'search'; }
+  else { openMenu(); panelMode = 'menu'; }
+}
+
+function closeAll() {
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('page-overlay').classList.remove('active');
+  document.getElementById('filters-panel').classList.remove('open');
+  document.getElementById('sort-panel').classList.remove('open');
+}
+
+// ─── FILTERS ─────────────────────────────────────────
+function toggleFilters() {
+  const fp = document.getElementById('filters-panel');
+  const sp = document.getElementById('sort-panel');
+  sp.classList.remove('open');
+  fp.classList.toggle('open');
+}
+
+function toggleSort() {
+  const sp = document.getElementById('sort-panel');
+  const fp = document.getElementById('filters-panel');
+  fp.classList.remove('open');
+  sp.classList.toggle('open');
+}
+
+function toggleTag(el) {
+  el.classList.toggle('active');
+  applyFilters();
+}
+
+function setSort(type) {
+  currentSort = type;
+  document.getElementById('sort-panel').classList.remove('open');
+  applyFilters();
+}
+
+async function applyFilters() {
+  const activeBrands = [...document.querySelectorAll('#filter-brands .filter-tag.active')].map(el => el.textContent);
+  let url = `${API}/products?sort=${currentSort}`;
+  if (activeBrands.length === 1) url += `&brand=${encodeURIComponent(activeBrands[0])}`;
+  const products = await fetch(url).then(r => r.json()).catch(() => []);
+  let result = products.map(p => ({ ...p, inWishlist: false }));
+  // фильтр по нескольким брендам на клиенте
+  if (activeBrands.length > 1) result = result.filter(p => activeBrands.includes(p.brand));
+  displayedProducts = result;
+  renderGrid(result);
+}
+
+function renderBrandFilters() {
+  const container = document.getElementById('filter-brands');
+  BRANDS.forEach(b => {
+    const tag = document.createElement('div');
+    tag.className = 'filter-tag';
+    tag.textContent = b;
+    tag.onclick = () => { tag.classList.toggle('active'); applyFilters(); };
+    container.appendChild(tag);
+  });
+}
+
+// ─── SEARCH ──────────────────────────────────────────
+async function doSearch(query) {
+  const q = query.trim();
+  const url = q ? `${API}/products?search=${encodeURIComponent(q)}` : `${API}/products`;
+  const products = await fetch(url).then(r => r.json()).catch(() => []);
+  renderGrid(products.map(p => ({ ...p, inWishlist: false })));
+}
+
+// ─── BRANDS LIST ─────────────────────────────────────
+function renderBrandsList() {
+  const list = document.getElementById('brands-list');
+  BRANDS.forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'brand-item';
+    el.textContent = b;
+    el.onclick = () => {
+      closeAll();
+      const res = PRODUCTS.filter(p => p.brand === b);
+      renderGrid(res);
+    };
+    list.appendChild(el);
+  });
+}
+
+// ─── WISHLIST ─────────────────────────────────────────
+function toggleWishlist(e, id) {
+  e.stopPropagation();
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  p.inWishlist = !p.inWishlist;
+  wishlistCount = PRODUCTS.filter(x => x.inWishlist).length;
+  document.getElementById('wishlist-count').textContent = wishlistCount;
+  const btn = document.getElementById('wish-' + id);
+  if (btn) btn.textContent = p.inWishlist ? 'wishlisted ♥' : 'wishlist+';
+}
+
+// ─── CONTACT ─────────────────────────────────────────
+function contactSeller(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  // В реальной версии — открывает Telegram с ботом/продавцом
+  window.open('https://t.me/your_seller_bot?start=product_' + id, '_blank');
+}
+</script>
+</body>
+</html>

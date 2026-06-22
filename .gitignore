@@ -1,0 +1,5 @@
+backend/venv/
+backend/catalog.db
+backend/.env
+__pycache__/
+*.pyc
