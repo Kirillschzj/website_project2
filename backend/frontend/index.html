@@ -748,10 +748,12 @@ async function applyFilters() {
 
 function renderBrandFilters() {
   const container = document.getElementById('filter-brands');
+  container.innerHTML = '';
   BRANDS.forEach(b => {
+    const name = typeof b === 'object' ? b.name : b;
     const tag = document.createElement('div');
     tag.className = 'filter-tag';
-    tag.textContent = b;
+    tag.textContent = name;
     tag.onclick = () => { tag.classList.toggle('active'); applyFilters(); };
     container.appendChild(tag);
   });
@@ -838,13 +840,15 @@ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 // ─── BRANDS LIST ─────────────────────────────────────
 function renderBrandsList() {
   const list = document.getElementById('brands-list');
+  list.innerHTML = '';
   BRANDS.forEach(b => {
+    const name = typeof b === 'object' ? b.name : b;
     const el = document.createElement('div');
     el.className = 'brand-item';
-    el.textContent = b;
+    el.textContent = name;
     el.onclick = () => {
       closeAll();
-      const res = PRODUCTS.filter(p => p.brand === b);
+      const res = PRODUCTS.filter(p => p.brand === name);
       renderGrid(res);
     };
     list.appendChild(el);
