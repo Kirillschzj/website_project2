@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRODUCT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk',sans-serif;background:white;color:black;}
+
+nav{height:80px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.08);}
+.back{font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;}
+
+.container{max-width:1500px;margin:auto;padding:40px;display:grid;grid-template-columns:1.1fr .9fr;gap:80px;}
+@media(max-width:900px){.container{grid-template-columns:1fr;padding:20px;gap:40px;}}
+
+.gallery{display:grid;gap:2px;}
+.gallery img{width:100%;display:block;object-fit:cover;cursor:pointer;transition:transform .2s;}
+.gallery img:hover{transform:scale(1.01);}
+
+.info{display:flex;flex-direction:column;gap:24px;position:sticky;top:120px;height:max-content;}
+@media(max-width:900px){.info{position:relative;top:auto;}}
+
+.brand{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;}
+.name{font-size:34px;font-weight:400;}@media(max-width:900px){.name{font-size:28px;}}
+.price{font-size:22px;}
+.description{line-height:1.8;font-size:14px;max-width:550px;opacity:.8;}
+
+.sizes{display:flex;gap:8px;flex-wrap:wrap;}
+.size{padding:8px 18px;border:1px solid black;font-size:11px;cursor:pointer;transition:.2s;}
+.size:hover{background:black;color:white;}
+
+.actions{display:flex;gap:12px;}
+.btn{padding:14px 24px;border:none;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:.12em;text-transform:uppercase;}
+.buy{background:black;color:white;}
+.wishlist{background:white;border:1px solid black;}
+
+.meta{margin-top:40px;display:flex;flex-direction:column;gap:12px;font-size:12px;opacity:.7;}
+
+/* ─── LIGHTBOX ─── */
+#lightbox{
+  position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+#lightbox.open{opacity:1;pointer-events:all;}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;}
+#lightbox .close{
+  position:absolute;top:30px;right:40px;color:white;font-size:30px;cursor:pointer;
+  font-family:sans-serif;
+}
+
+/* ─── RECOMMENDATIONS ─── */
+.recommendations{margin-top:60px;border-top:1px solid rgba(0,0,0,.1);padding-top:40px;}
+.recommendations h3{font-size:14px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;}
+.recommend-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+@media(max-width:900px){.recommend-grid{grid-template-columns:repeat(2,1fr);}}
+.recommend-item{cursor:pointer;border:1px solid #eee;padding:8px;}
+.recommend-item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
+.recommend-item .r-brand{font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-top:6px;opacity:.6;}
+.recommend-item .r-name{font-size:12px;margin-top:2px;}
+.recommend-item .r-price{font-size:11px;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<nav><div class="back" onclick="history.back()">← BACK</div></nav>
+
+<div class="container">
+  <div class="gallery" id="gallery"></div>
+  <div class="info">
+    <div>
+      <div class="brand" id="brand"></div>
+      <h1 class="name" id="name"></h1>
+      <div class="price" id="price"></div>
+    </div>
+    <div class="description" id="description"></div>
+    <div class="sizes" id="sizes"></div>
+    <div class="actions">
+      <button class="btn buy" id="buy-btn">CONTACT TO BUY</button>
+      <button class="btn wishlist" id="wishlist-btn">WISHLIST+</button>
+    </div>
+    <div class="meta">
+      <div>ID: <span id="id"></span></div>
+      <div>Condition: Excellent</div>
+      <div>Shipping: Worldwide</div>
+    </div>
+  </div>
+</div>
+
+<div class="recommendations" id="recommendations" style="display:none;">
+  <div class="container" style="padding:0 40px 40px;max-width:1500px;margin:auto;">
+    <h3>You may also like</h3>
+    <div class="recommend-grid" id="recommend-grid"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <span class="close">&times;</span>
+  <img id="lightbox-img" src="">
+</div>
+
+<script>
+const API = 'https://websiteproject2-production.up.railway.app/api';
+const id = new URLSearchParams(location.search).get('id');
+
+let currentProduct = null;
+let allProducts = [];
+
+async function loadProduct() {
+  try {
+    const [product, products] = await Promise.all([
+      fetch(`${API}/products/${id}`).then(r => r.json()),
+      fetch(`${API}/products`).then(r => r.json()),
+    ]);
+    currentProduct = product;
+    allProducts = products;
+
+    document.getElementById('brand').textContent = product.brand;
+    document.getElementById('name').textContent = product.name;
+    document.getElementById('price').textContent = product.price_display;
+    document.getElementById('id').textContent = product.id;
+    document.getElementById('description').textContent = product.description || 'Описание отсутствует';
+
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = product.images.map(img =>
+      `<img src="${img}" alt="${product.name}" onclick="openLightbox('${img}')">`
+    ).join('');
+
+    const sizes = document.getElementById('sizes');
+    sizes.innerHTML = product.sizes.map(s => `<div class="size">${s}</div>`).join('');
+
+    document.getElementById('buy-btn').onclick = () => {
+      window.open(product.telegram_link || `https://t.me/your_seller_bot?start=product_${product.id}`, '_blank');
+    };
+
+    // wishlist (локально)
+    let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    const inWish = wishlist.includes(product.id);
+    const wishBtn = document.getElementById('wishlist-btn');
+    wishBtn.textContent = inWish ? '♥ WISHLISTED' : 'WISHLIST+';
+    wishBtn.onclick = () => {
+      let w = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const idx = w.indexOf(product.id);
+      if (idx > -1) {
+        w.splice(idx, 1);
+        wishBtn.textContent = 'WISHLIST+';
+      } else {
+        w.push(product.id);
+        wishBtn.textContent = '♥ WISHLISTED';
+      }
+      localStorage.setItem('wishlist', JSON.stringify(w));
+      toast(inW ? 'Removed from wishlist' : 'Added to wishlist');
+    };
+
+    // Рекомендации (товары той же категории или бренда)
+    loadRecommendations(product);
+  } catch (e) {
+    document.querySelector('.container').innerHTML = `<p style="padding:40px;">Ошибка загрузки товара</p>`;
+  }
+}
+
+function loadRecommendations(product) {
+  const similar = allProducts.filter(p =>
+    p.id !== product.id &&
+    (p.category === product.category || p.brand === product.brand)
+  ).slice(0, 4);
+
+  if (similar.length === 0) return;
+
+  const section = document.getElementById('recommendations');
+  section.style.display = 'block';
+  const grid = document.getElementById('recommend-grid');
+  grid.innerHTML = similar.map(p => `
+    <div class="recommend-item" onclick="location.href='product.html?id=${p.id}'">
+      <img src="${p.images[0] || ''}" alt="${p.name}" loading="lazy">
+      <div class="r-brand">${p.brand}</div>
+      <div class="r-name">${p.name}</div>
+      <div class="r-price">${p.price_display}</div>
+    </div>
+  `).join('');
+}
+
+// Lightbox
+function openLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = src;
+  lb.classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+function toast(text) {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:black;color:white;padding:10px 20px;font-size:11px;letter-spacing:.08em;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 2000);
+}
+
+loadProduct();
+</script>
+</body>
+</html>

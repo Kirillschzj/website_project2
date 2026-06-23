@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADMIN PANEL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fff;
+    --fg: #000;
+    --gray: #888;
+    --light: #f2f2f2;
+    --border: #e0e0e0;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --font: 'Space Grotesk', sans-serif;
+  }
+
+  body { font-family: var(--font); background: var(--bg); color: var(--fg); min-height: 100vh; }
+
+  /* ─── LOGIN ─── */
+  #login-screen {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    z-index: 999;
+  }
+  #login-screen.hidden { display: none; }
+
+  .login-box {
+    display: flex; flex-direction: column; gap: 16px;
+    width: 300px;
+  }
+  .login-title {
+    font-size: 11px; font-weight: 500; letter-spacing: .2em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .input-field {
+    width: 100%;
+    border: none; border-bottom: 1px solid var(--fg);
+    padding: 8px 0; font-family: var(--font);
+    font-size: 13px; outline: none; background: transparent;
+    letter-spacing: .04em;
+  }
+  .input-field::placeholder { color: #bbb; }
+
+  /* ─── BTN UNDERLINE ─── */
+  .btn-ul {
+    position: relative; background: none; border: none;
+    font-family: var(--font); font-size: 11px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase;
+    cursor: pointer; padding: 6px 0; color: var(--fg);
+    align-self: flex-start;
+  }
+  .btn-ul::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: var(--fg);
+    transition: left .25s ease, right .25s ease;
+  }
+  .btn-ul:hover::after { left: 0; right: 0; }
+  .btn-ul.danger { color: var(--danger); }
+  .btn-ul.danger::after { background: var(--danger); }
+
+  #login-error {
+    font-size: 11px; color: var(--danger);
+    letter-spacing: .06em; min-height: 16px;
+  }
+
+  /* ─── LAYOUT ─── */
+  #app { display:none; min-height: 100vh; }
+  #app.authenticated { display:flex; }
+
+  /* ─── SIDEBAR ─── */
+  aside {
+    width: 220px; flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 32px 24px;
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar-title {
+    font-size: 10px; font-weight: 500; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--gray);
+    margin-bottom: 28px;
+  }
+  .nav-item {
+    font-size: 12px; font-weight: 500; letter-spacing: .1em;
+    text-transform: uppercase; padding: 10px 0;
+    cursor: pointer; border-bottom: 1px solid var(--border);
+    position: relative; transition: color .2s;
+  }
+  .nav-item::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 50%; right: 50%;
+    height: 1px; background: var(--fg);
+    transition: left .25s, right .25s;
+  }
+  .nav-item:hover::after, .nav-item.active::after { left: 0; right: 0; }
+  .nav-item.active { font-weight: 500; }
+
+  .sidebar-logout {
+    margin-top: auto;
+    font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--gray); cursor: pointer;
+    position: relative; padding: 4px 0; align-self: flex-start;
+  }
+  .sidebar-logout::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%; right: 50%;
+    height: 1px; background: var(--gray);
+    transition: left .25s, right .25s;
+  }
+  .sidebar-logout:hover::after { left: 0; right: 0; }
+
+  /* ─── MAIN ─── */
+  main { flex: 1; padding: 32px 40px; overflow-y: auto; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 11px; font-weight: 500; letter-spacing: .2em;
+    text-transform: uppercase;
+  }
+
+  /* ─── STATS ─── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    border: 1px solid var(--border); padding: 20px 24px;
+  }
+  .stat-label {
+    font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--gray); margin-bottom: 8px;
+  }
+  .stat-value { font-size: 28px; font-weight: 300; letter-spacing: -.01em; }
+
+  /* ─── TABLE ─── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 9px; font-weight: 500; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--gray);
+    padding: 10px 12px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    font-size: 12px; padding: 12px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:hover td { background: var(--light); }
+
+  .badge {
+    display: inline-block; font-size: 9px; letter-spacing: .1em;
+    text-transform: uppercase; padding: 3px 8px;
+    border: 1px solid var(--border);
+  }
+  .badge.active { border-color: var(--success); color: var(--success); }
+  .badge.inactive { border-color: var(--danger); color: var(--danger); }
+
+  .td-actions { display: flex; gap: 16px; }
+
+  /* ─── PRODUCT FORM ─── */
+  .form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px;
+  }
+  .form-group {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label {
+    display: block; font-size: 9px; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--gray); margin-bottom: 8px;
+  }
+  .form-input, .form-textarea, .form-select {
+    width: 100%; border: none; outline: none;
+    font-family: var(--font); font-size: 13px;
+    background: transparent; color: var(--fg);
+    letter-spacing: .02em;
+  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-select { cursor: pointer; }
+
+  .form-hint {
+    font-size: 10px; color: var(--gray); margin-top: 4px;
+    letter-spacing: .04em;
+  }
+
+  /* image preview */
+  .img-preview-wrap {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;
+  }
+  .img-preview {
+    width: 80px; height: 80px; object-fit: cover;
+    border: 1px solid var(--border); position: relative;
+  }
+  .img-preview-placeholder {
+    width: 80px; height: 80px;
+    border: 1px dashed var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: var(--gray); letter-spacing: .06em;
+    cursor: pointer; text-transform: uppercase;
+    transition: border-color .2s;
+  }
+  .img-preview-placeholder:hover { border-color: var(--fg); }
+
+  .form-actions {
+    display: flex; gap: 24px; margin-top: 28px; align-items: center;
+  }
+  .form-msg {
+    font-size: 11px; letter-spacing: .06em;
+    opacity: 0; transition: opacity .3s;
+  }
+  .form-msg.show { opacity: 1; }
+  .form-msg.ok { color: var(--success); }
+  .form-msg.err { color: var(--danger); }
+
+  /* ─── MODAL ─── */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.25);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s;
+  }
+  #modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg);
+    padding: 32px 36px;
+    min-width: 340px;
+    transform: translateY(12px);
+    transition: transform .25s;
+  }
+  #modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title {
+    font-size: 11px; font-weight: 500; letter-spacing: .16em;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .modal-text { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 24px; }
+
+  /* ─── TOAST ─── */
+  #toast {
+    position: fixed; bottom: 32px; right: 32px;
+    background: var(--fg); color: var(--bg);
+    font-size: 11px; letter-spacing: .08em;
+    padding: 12px 20px;
+    transform: translateY(20px); opacity: 0;
+    transition: transform .3s, opacity .3s;
+    z-index: 999; pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─── SEARCH BAR ─── */
+  .search-bar {
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--fg); padding-bottom: 6px;
+    margin-bottom: 24px; width: 280px;
+  }
+  .search-bar input {
+    flex: 1; border: none; outline: none;
+    font-family: var(--font); font-size: 12px;
+    letter-spacing: .06em; text-transform: uppercase;
+    background: transparent;
+  }
+  .search-bar svg { width: 14px; height: 14px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ─── LOGIN ─── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Admin Access</div>
+    <input class="input-field" type="password" id="pwd-input"
+      placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div id="login-error"></div>
+    <button class="btn-ul" onclick="doLogin()">Enter</button>
+  </div>
+</div>
+
+<!-- ─── APP ─── -->
+<div id="app">
+  <aside>
+    <div class="sidebar-title">Admin Panel</div>
+    <div class="nav-item active" data-section="dashboard" onclick="switchSection(this)">Dashboard</div>
+    <div class="nav-item" data-section="products" onclick="switchSection(this)">Products</div>
+    <div class="nav-item" data-section="add-product" onclick="switchSection(this)">Add Product</div>
+    <div class="nav-item" data-section="brands" onclick="switchSection(this)">Brands</div>
+    <div class="nav-item" data-section="categories" onclick="switchSection(this)">Categories</div>
+    <div class="nav-item" data-section="users" onclick="switchSection(this)">Users</div>
+    <div class="sidebar-logout" onclick="doLogout()">Log out</div>
+  </aside>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="section-dashboard">
+      <div class="section-header">
+        <div class="section-title">Dashboard</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Products</div>
+          <div class="stat-value" id="stat-products">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value" id="stat-users">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Brands</div>
+          <div class="stat-value" id="stat-brands">—</div>
+        </div>
+      </div>
+      <div class="section-title" style="margin-bottom:16px;">Recent Products</div>
+      <div class="table-wrap">
+        <table id="recent-table">
+          <thead><tr>
+            <th>Brand</th><th>Name</th><th>Price</th><th>Sizes</th><th>Status</th>
+          </tr></thead>
+          <tbody id="recent-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="section" id="section-products">
+      <div class="section-header">
+        <div class="section-title">All Products</div>
+        <button class="btn-ul" onclick="switchSectionById('add-product')">+ Add New</button>
+      </div>
+      <div class="search-bar">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/>
+        </svg>
+        <input type="text" placeholder="Search products..." oninput="filterProductTable(this.value)">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Brand</th><th>Name</th><th>Price</th><th>Sizes</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ADD / EDIT PRODUCT -->
+    <div class="section" id="section-add-product">
+      <div class="section-header">
+        <div class="section-title" id="form-section-title">Add Product</div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Brand</label>
+          <select class="form-select form-input" id="f-brand"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select form-input" id="f-category" onchange="onCategoryChange()"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Product Name</label>
+          <input class="form-input" id="f-name" type="text" placeholder="Jumbo Tee">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price</label>
+          <input class="form-input" id="f-price" type="number" placeholder="420">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency</label>
+          <select class="form-select form-input" id="f-currency">
+            <option value="€">€ EUR</option>
+            <option value="$">$ USD</option>
+            <option value="₽">₽ RUB</option>
+            <option value="¥">¥ JPY</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Available Sizes</label>
+          <div id="f-sizes-wrap" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;"></div>
+          <div class="form-hint">размеры из выбранной категории</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telegram Link</label>
+          <input class="form-input" id="f-tg" type="text" placeholder="https://t.me/yourseller">
+          <div class="form-hint">ссылка куда ведёт "contact to buy"</div>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea form-input" id="f-desc" placeholder="Описание товара..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Photos (выберите файлы)</label>
+          <input type="file" id="f-images" multiple accept="image/*" style="margin-top:4px;font-size:13px;">
+          <div class="form-hint">можно выбрать несколько изображений (старые сохранятся)</div>
+          <div class="img-preview-wrap" id="img-preview"></div>
+          <div id="upload-progress" style="font-size:11px;color:var(--gray);margin-top:6px;"></div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ul" onclick="submitProduct()">Save Product</button>
+        <button class="btn-ul" id="btn-cancel-edit" style="display:none" onclick="cancelEdit()">Cancel Edit</button>
+        <div class="form-msg" id="form-msg"></div>
+      </div>
+    </div>
+
+    <!-- BRANDS -->
+    <div class="section" id="section-brands">
+      <div class="section-header">
+        <div class="section-title">Brands</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:24px;align-items:flex-end;">
+        <div style="border-bottom:1px solid var(--fg);flex:1;max-width:280px;">
+          <input class="form-input" id="new-brand-input" type="text" placeholder="Brand name" style="padding:8px 0;">
+        </div>
+        <button class="btn-ul" onclick="addBrand()">Add</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Action</th></tr></thead>
+          <tbody id="brands-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="section" id="section-categories">
+      <div class="section-header">
+        <div class="section-title">Categories</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:8px;align-items:flex-end;">
+        <div style="border-bottom:1px solid var(--fg);flex:1;max-width:280px;">
+          <input class="form-input" id="new-cat-name" type="text" placeholder="Category name" style="padding:8px 0;">
+        </div>
+        <div style="border-bottom:1px solid var(--fg);flex:1;max-width:320px;">
+          <input class="form-input" id="new-cat-sizes" type="text" placeholder="Sizes: XS,S,M,L,XL" style="padding:8px 0;">
+        </div>
+        <button class="btn-ul" onclick="addCategory()">Add</button>
+      </div>
+      <div class="form-hint" style="margin-bottom:24px;">размеры через запятую: XS,S,M,L или 38,39,40,41,42</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Sizes</th><th>Action</th></tr></thead>
+          <tbody id="categories-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="section" id="section-users">
+      <div class="section-header">
+        <div class="section-title">Users</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Telegram ID</th><th>Username</th><th>Name</th><th>Joined</th>
+          </tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── CONFIRM MODAL ─── -->
+<div id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Confirm action</div>
+    <div class="modal-text" id="modal-text">Are you sure?</div>
+    <div class="modal-actions">
+      <button class="btn-ul danger" id="modal-confirm">Confirm</button>
+      <button class="btn-ul" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div id="toast"></div>
+
+<script>
+const API = '/api';
+let adminPwd = '';
+let editingId = null;
+let allProducts = [];
+let allBrands = [];
+let allCategories = [];
+
+// ─── ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ДЛЯ ХРАНЕНИЯ СТАРЫХ URL ──
+let existingImageUrls = [];
+
+// ─── LOGIN ───────────────────────────────────────────
+function doLogin() {
+  const pwd = document.getElementById('pwd-input').value.trim();
+  if (!pwd) return;
+  adminPwd = pwd;
+  fetch(`${API}/admin/users`, { headers: { 'x-admin-password': adminPwd } })
+    .then(r => { if (r.status === 403) throw new Error(); return r.json(); })
+    .then(() => {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app').classList.add('authenticated');
+      loadDashboard();
+    })
+    .catch(() => {
+      document.getElementById('login-error').textContent = 'Wrong password';
+      adminPwd = '';
+    });
+}
+
+function doLogout() {
+  adminPwd = '';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.remove('authenticated');
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+
+// ─── NAVIGATION ──────────────────────────────────────
+function switchSection(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  const id = el.dataset.section;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  if (id === 'dashboard') loadDashboard();
+  if (id === 'products') loadProducts();
+  if (id === 'add-product') loadFormSelects();
+  if (id === 'brands') loadBrandsSection();
+  if (id === 'categories') loadCategoriesSection();
+  if (id === 'users') loadUsers();
+}
+
+function switchSectionById(id) {
+  const el = document.querySelector(`[data-section="${id}"]`);
+  if (el) switchSection(el);
+}
+
+// ─── DASHBOARD ───────────────────────────────────────
+async function loadDashboard() {
+  const [products, users, brands] = await Promise.all([
+    apiFetch('/products'),
+    apiFetch('/admin/users'),
+    apiFetch('/brands'),
+  ]);
+  document.getElementById('stat-products').textContent = products.length;
+  document.getElementById('stat-users').textContent = users.length;
+  document.getElementById('stat-brands').textContent = brands.length;
+  const tbody = document.getElementById('recent-tbody');
+  tbody.innerHTML = '';
+  products.slice(0, 8).forEach(p => {
+    tbody.innerHTML += `<tr>
+      <td>${p.brand}</td><td>${p.name}</td><td>${p.price_display}</td>
+      <td>${p.sizes.join(', ')}</td>
+      <td><span class="badge active">Active</span></td>
+    </tr>`;
+  });
+}
+
+// ─── PRODUCTS ────────────────────────────────────────
+async function loadProducts() {
+  allProducts = await apiFetch('/products');
+  renderProductTable(allProducts);
+}
+
+function renderProductTable(products) {
+  const tbody = document.getElementById('products-tbody');
+  tbody.innerHTML = '';
+  products.forEach(p => {
+    tbody.innerHTML += `<tr>
+      <td>${p.id}</td><td>${p.brand}</td><td>${p.name}</td>
+      <td>${p.price_display}</td><td>${p.category || '—'}</td>
+      <td>${p.sizes.join(', ')}</td>
+      <td><span class="badge active">Active</span></td>
+      <td><div class="td-actions">
+        <button class="btn-ul" onclick="editProduct(${p.id})">Edit</button>
+        <button class="btn-ul danger" onclick="confirmDelete(${p.id}, '${p.name}')">Delete</button>
+      </div></td>
+    </tr>`;
+  });
+}
+
+function filterProductTable(q) {
+  const filtered = allProducts.filter(p =>
+    p.brand.toLowerCase().includes(q.toLowerCase()) ||
+    p.name.toLowerCase().includes(q.toLowerCase())
+  );
+  renderProductTable(filtered);
+}
+
+// ─── FORM SELECTS ────────────────────────────────────
+async function loadFormSelects() {
+  const [brands, cats] = await Promise.all([
+    apiFetch('/brands'),
+    apiFetch('/categories'),
+  ]);
+  allBrands = brands;
+  allCategories = cats;
+
+  const brandSel = document.getElementById('f-brand');
+  brandSel.innerHTML = '<option value="">— Select brand —</option>' +
+    brands.map(b => `<option value="${b.name}" data-id="${b.id}">${b.name}</option>`).join('');
+
+  const catSel = document.getElementById('f-category');
+  catSel.innerHTML = '<option value="">— Select category —</option>' +
+    cats.map(c => `<option value="${c.name}" data-id="${c.id}" data-sizes="${c.sizes.join(',')}">${c.name}</option>`).join('');
+
+  renderSizesCheckboxes([]);
+}
+
+function onCategoryChange() {
+  const sel = document.getElementById('f-category');
+  const opt = sel.options[sel.selectedIndex];
+  const sizes = opt.dataset.sizes ? opt.dataset.sizes.split(',').filter(Boolean) : [];
+  renderSizesCheckboxes(sizes);
+}
+
+function renderSizesCheckboxes(sizes) {
+  const wrap = document.getElementById('f-sizes-wrap');
+  wrap.innerHTML = '';
+  if (!sizes.length) {
+    wrap.innerHTML = '<span style="font-size:11px;color:var(--gray);">выберите категорию</span>';
+    return;
+  }
+  sizes.forEach(s => {
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;';
+    label.innerHTML = `<input type="checkbox" value="${s.trim()}" style="cursor:pointer;"> ${s.trim()}`;
+    wrap.appendChild(label);
+  });
+}
+
+function getSelectedSizes() {
+  return [...document.querySelectorAll('#f-sizes-wrap input:checked')]
+    .map(cb => cb.value).join(',');
+}
+
+// ─── IMAGE PREVIEW (local files) ─────────────────────
+document.getElementById('f-images').addEventListener('change', function(e) {
+  const wrap = document.getElementById('img-preview');
+  // Не очищаем полностью, а добавляем новые превью к уже существующим (старым)
+  // Чтобы не дублировать, лучше очистить и перерисовать все (старые + новые)
+  // Для этого мы будем хранить все URL в existingImageUrls и добавлять новые
+  // Но для простоты мы покажем только новые файлы, а старые останутся в existingImageUrls
+  // Однако лучше показывать все: старые + новые.
+  // Сделаем так: при изменении поля мы добавляем новые превью, но старые уже есть.
+  // Но если пользователь убрал файлы, мы не можем удалить старые превью.
+  // Лучше перерисовывать все: старые + новые.
+  // Для этого мы будем собирать все URL: existingImageUrls + новые файлы (временно)
+  // Это сложно, поэтому я предлагаю показывать только новые файлы, а старые остаются в existingImageUrls,
+  // но при сохранении мы объединим.
+  // На данный момент просто добавим новые превью к уже существующим (если они есть).
+  // Но чтобы не дублировать, мы можем очистить и заново отобразить все: старые + новые.
+  // Но у нас нет доступа к URL новых файлов до загрузки. Поэтому мы показываем только превью новых файлов.
+  // Старые мы уже показали в editProduct.
+  // При добавлении новых файлов мы добавляем их превью в конец.
+  const files = e.target.files;
+  for (let i = 0; i < files.length; i++) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = document.createElement('img');
+      img.className = 'img-preview';
+      img.src = ev.target.result;
+      // Добавляем в конец
+      document.getElementById('img-preview').appendChild(img);
+    };
+    reader.readAsDataURL(files[i]);
+  }
+});
+
+// ─── ADD / EDIT PRODUCT ──────────────────────────────
+async function submitProduct() {
+  const brandSel = document.getElementById('f-brand');
+  const catSel = document.getElementById('f-category');
+  const brandOpt = brandSel.options[brandSel.selectedIndex];
+  const catOpt = catSel.options[catSel.selectedIndex];
+
+  const name = v('f-name');
+  const price = parseFloat(v('f-price')) || 0;
+  const currency = v('f-currency');
+  const sizes = getSelectedSizes();
+  const description = v('f-desc');
+  const telegram_link = v('f-tg');
+
+  if (!brandSel.value || !name) { showMsg('Brand and name are required', 'err'); return; }
+
+  // 1. Загружаем новые файлы, если они есть
+  const fileInput = document.getElementById('f-images');
+  const files = fileInput.files;
+  let newImageUrls = [];
+  if (files.length > 0) {
+    const formData = new FormData();
+    for (let f of files) {
+      formData.append('files', f);
+    }
+    try {
+      const uploadRes = await fetch(`${API}/admin/upload`, {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPwd },
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error('Upload failed');
+      const uploadData = await uploadRes.json();
+      newImageUrls = uploadData.urls;
+    } catch(e) {
+      showMsg('Ошибка загрузки файлов: ' + e.message, 'err');
+      return;
+    }
+  }
+
+  // 2. Объединяем старые и новые URL
+  let allImageUrls = [];
+  if (editingId) {
+    // Если редактируем, берём существующие
+    allImageUrls = existingImageUrls.slice(); // копия
+  }
+  // Добавляем новые
+  allImageUrls = allImageUrls.concat(newImageUrls);
+
+  // 3. Отправляем данные продукта
+  const data = {
+    brand: brandSel.value,
+    brand_id: brandOpt?.dataset.id ? parseInt(brandOpt.dataset.id) : null,
+    category: catSel.value,
+    category_id: catOpt?.dataset.id ? parseInt(catOpt.dataset.id) : null,
+    name: name,
+    price: price,
+    currency: currency,
+    sizes: sizes,
+    description: description,
+    images: allImageUrls.join(','),
+    telegram_link: telegram_link,
+    is_active: true,
+  };
+
+  const url = editingId ? `${API}/admin/products/${editingId}` : `${API}/admin/products`;
+  const method = editingId ? 'PUT' : 'POST';
+
+  try {
+    const r = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPwd },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) throw new Error();
+    showMsg(editingId ? 'Product updated' : 'Product added', 'ok');
+    toast(editingId ? 'Product updated ✓' : 'Product added ✓');
+    // очищаем поле файлов и превью, сбрасываем existingImageUrls
+    fileInput.value = '';
+    document.getElementById('img-preview').innerHTML = '';
+    existingImageUrls = [];
+    cancelEdit();
+  } catch { showMsg('Error saving product', 'err'); }
+}
+
+async function editProduct(id) {
+  await loadFormSelects();
+  const p = await apiFetch(`/products/${id}`);
+  editingId = id;
+  // Сохраняем существующие URL
+  existingImageUrls = p.images.slice();
+
+  document.getElementById('f-brand').value = p.brand;
+  document.getElementById('f-category').value = p.category || '';
+  onCategoryChange();
+  // отмечаем размеры
+  setTimeout(() => {
+    document.querySelectorAll('#f-sizes-wrap input').forEach(cb => {
+      cb.checked = p.sizes.includes(cb.value);
+    });
+  }, 50);
+  setV('f-name', p.name);
+  setV('f-price', p.price);
+  setV('f-currency', p.currency);
+  setV('f-desc', p.description);
+  setV('f-tg', p.telegram_link);
+  // показываем существующие фото в превью
+  const gallery = document.getElementById('img-preview');
+  gallery.innerHTML = '';
+  p.images.forEach(url => {
+    const img = document.createElement('img');
+    img.className = 'img-preview';
+    img.src = url;
+    gallery.appendChild(img);
+  });
+  document.getElementById('form-section-title').textContent = 'Edit Product';
+  document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+  switchSectionById('add-product');
+}
+
+function cancelEdit() {
+  editingId = null;
+  existingImageUrls = [];
+  ['f-name','f-price','f-desc','f-tg'].forEach(id => setV(id, ''));
+  setV('f-currency', '€');
+  document.getElementById('f-brand').value = '';
+  document.getElementById('f-category').value = '';
+  renderSizesCheckboxes([]);
+  document.getElementById('img-preview').innerHTML = '';
+  document.getElementById('f-images').value = '';
+  document.getElementById('form-section-title').textContent = 'Add Product';
+  document.getElementById('btn-cancel-edit').style.display = 'none';
+}
+
+// ─── BRANDS SECTION ──────────────────────────────────
+async function loadBrandsSection() {
+  const brands = await apiFetch('/brands');
+  allBrands = brands;
+  const tbody = document.getElementById('brands-tbody');
+  tbody.innerHTML = '';
+  brands.forEach(b => {
+    tbody.innerHTML += `<tr>
+      <td>${b.id}</td><td>${b.name}</td>
+      <td><button class="btn-ul danger" onclick="deleteBrand(${b.id}, '${b.name}')">Delete</button></td>
+    </tr>`;
+  });
+}
+
+async function addBrand() {
+  const name = document.getElementById('new-brand-input').value.trim();
+  if (!name) return;
+  try {
+    const r = await fetch(`${API}/admin/brands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPwd },
+      body: JSON.stringify({ name }),
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    document.getElementById('new-brand-input').value = '';
+    toast('Brand added ✓');
+    loadBrandsSection();
+  } catch(e) { toast(e.message || 'Error'); }
+}
+
+function deleteBrand(id, name) {
+  pendingDeleteId = id;
+  pendingDeleteType = 'brand';
+  document.getElementById('modal-text').textContent = `Delete brand "${name}"?`;
+  document.getElementById('modal-confirm').onclick = doDeleteBrand;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function doDeleteBrand() {
+  closeModal();
+  await fetch(`${API}/admin/brands/${pendingDeleteId}`, {
+    method: 'DELETE', headers: { 'x-admin-password': adminPwd }
+  });
+  toast('Brand deleted');
+  loadBrandsSection();
+}
+
+// ─── CATEGORIES SECTION ──────────────────────────────
+async function loadCategoriesSection() {
+  const cats = await apiFetch('/categories');
+  allCategories = cats;
+  const tbody = document.getElementById('categories-tbody');
+  tbody.innerHTML = '';
+  cats.forEach(c => {
+    tbody.innerHTML += `<tr>
+      <td>${c.id}</td><td>${c.name}</td>
+      <td>${c.sizes.join(', ') || '—'}</td>
+      <td><button class="btn-ul danger" onclick="deleteCategory(${c.id}, '${c.name}')">Delete</button></td>
+    </tr>`;
+  });
+}
+
+async function addCategory() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  const sizes = document.getElementById('new-cat-sizes').value.trim();
+  if (!name) return;
+  try {
+    const r = await fetch(`${API}/admin/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPwd },
+      body: JSON.stringify({ name, sizes }),
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    document.getElementById('new-cat-name').value = '';
+    document.getElementById('new-cat-sizes').value = '';
+    toast('Category added ✓');
+    loadCategoriesSection();
+  } catch(e) { toast(e.message || 'Error'); }
+}
+
+function deleteCategory(id, name) {
+  pendingDeleteId = id;
+  pendingDeleteType = 'category';
+  document.getElementById('modal-text').textContent = `Delete category "${name}"?`;
+  document.getElementById('modal-confirm').onclick = doDeleteCategory;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function doDeleteCategory() {
+  closeModal();
+  await fetch(`${API}/admin/categories/${pendingDeleteId}`, {
+    method: 'DELETE', headers: { 'x-admin-password': adminPwd }
+  });
+  toast('Category deleted');
+  loadCategoriesSection();
+}
+
+// ─── DELETE PRODUCT ──────────────────────────────────
+let pendingDeleteId = null;
+let pendingDeleteType = 'product';
+
+function confirmDelete(id, name) {
+  pendingDeleteId = id;
+  pendingDeleteType = 'product';
+  document.getElementById('modal-text').textContent = `Delete "${name}"?`;
+  document.getElementById('modal-confirm').onclick = doDelete;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function doDelete() {
+  closeModal();
+  try {
+    await fetch(`${API}/admin/products/${pendingDeleteId}`, {
+      method: 'DELETE', headers: { 'x-admin-password': adminPwd },
+    });
+    toast('Product deleted');
+    loadProducts();
+  } catch { toast('Error deleting'); }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  pendingDeleteId = null;
+}
+
+// ─── USERS ───────────────────────────────────────────
+async function loadUsers() {
+  const users = await apiFetch('/admin/users');
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = '';
+  users.forEach(u => {
+    tbody.innerHTML += `<tr>
+      <td>${u.id}</td><td>${u.telegram_id}</td>
+      <td>${u.username ? '@' + u.username : '—'}</td>
+      <td>${u.first_name}</td>
+      <td>${u.created_at.split('T')[0]}</td>
+    </tr>`;
+  });
+}
+
+// ─── HELPERS ─────────────────────────────────────────
+async function apiFetch(path) {
+  const r = await fetch(API + path, { headers: { 'x-admin-password': adminPwd } });
+  if (!r.ok) {
+    if (r.status === 403) {
+      doLogout();
+      throw new Error('Unauthorized');
+    }
+    throw new Error(`HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+function v(id) { return document.getElementById(id).value.trim(); }
+function setV(id, val) { const el = document.getElementById(id); if(el) el.value = val; }
+
+function showMsg(text, type) {
+  const el = document.getElementById('form-msg');
+  el.textContent = text; el.className = `form-msg show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function toast(text) {
+  const el = document.getElementById('toast');
+  el.textContent = text; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+</script>
+</body>
+</html>
